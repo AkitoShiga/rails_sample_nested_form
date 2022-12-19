@@ -1,0 +1,13 @@
+%h1 親の一覧
+%table
+  %thead
+    %tr
+      %th #
+      %th 名前
+  - @parents.each.with_index(1) do |parent, index|
+    %tbody
+      %tr
+        %td= index
+        %td= link_to parent.name, parent_path(parent)
+= link_to '新規作成', new_parent_path, data: { turbo: false }
+

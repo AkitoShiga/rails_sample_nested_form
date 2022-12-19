@@ -1,0 +1,21 @@
+%h1= "親#{@parent.id}の詳細"
+%div
+  %label= '名前'
+  = @parent.name
+%div
+  %h2 子の一覧
+  %table
+    %thead
+      %tr
+        %th #
+        %th 名前
+        %th 年齢
+    %tbody
+      - @parent.children.each.with_index(1) do |child, index|
+        %tr
+          %td= index
+          %td= child.name
+          %td= child.age
+%div
+=button_to '削除', parent_path, method: :delete, id: @parent.id
+=link_to '戻る', parents_path

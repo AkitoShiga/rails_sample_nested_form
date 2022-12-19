@@ -1,0 +1,115 @@
+%script{ src: 'https://code.jquery.com/jquery-3.6.2.slim.js' }
+%h1 新規作成フォーム
+= form_with model: @parent_form,
+            method: :create,
+            local: true,
+            url: parents_path,
+            data: { turbo: false } do |f|
+  %div{ style: 'margin-bottom: 30px;' }
+    = f.label :name, '親の名前'
+    = f.text_field :name
+    %span= @parent_form.errors[:presence_name].first
+
+  #child-forms{ data: { 'max-size' => Parent::CHILDREN_MAX_SIZE, 'initial-size' => @parent_form.child_forms.size } }
+    = f.fields_for :child_forms do |cf|
+      .child-form{ style: 'margin-bottom: 30px;' }
+        %div{ style: 'margin-bottom: 10px;' }
+          = cf.label :name, '子の名前'
+          = cf.text_field :name,
+            value: cf.object.name
+          %span.child-form-error= cf.object.errors[:presence_name].first
+        %div{ style: 'margin-bottom: 10px;' }
+          = cf.label :name, '子の生年月日'
+          = cf.date_field :birthday,
+            value: cf.object.birthday
+          %span.child-form-error= cf.object.errors[:presence_birthday].first
+          %span.child-form-error= cf.object.errors[:correct_birthday].first
+        %div.child-form-buttons{ style: 'margin-bottom: 10px;' }
+          %span.add-form-button  日程を追加
+          %span.delete-form-button 日程を削除
+
+  %div
+    = f.submit '登録',
+    data: { disable_with: '送信中です' }
+  %div
+    = link_to '戻る', parents_path, data: { turbo: false }
+
+:javascript
+  $(function () {
+    let currentIndex = $('#child-forms').data('initial-size') - 1;
+    const maxIndex = $('#child-forms').data('max-size') - 1;
+    const minIndex = 0;
+    const allChildForms = () => { return $('#child-forms').find('.child-form') }
+
+    function setIndex(index, element) {
+      ['name', 'id'].forEach(attribute => {
+        element.attr(attribute, element.attr('name').replace(/\d{1}/, index))
+      })
+    }
+
+    function newChildForm(index) {
+      const newForm = allChildForms().last().clone()
+      $('input', newForm).each((i, element) => {
+        setIndex(index, $(element))
+        $(element).val('')
+      })
+      $('.child-form-error', newForm).text('')
+
+      return newForm
+    }
+
+    function resetButton() {
+      const forms = allChildForms()
+      forms.each((index, form) => {
+        // フォームがひとつだけ
+        if(forms.length === 1) {
+          $('.add-form-button', form).show()
+          $('.delete-form-button', form).hide()
+        }
+        // フォームが複数、かつフォームの要素ではない
+        if(forms.length > 1 && index < currentIndex) {
+          $('.add-form-button', form).hide()
+          $('.delete-form-button', form).show()
+        }
+        // 最後のフォーム、かつフォームの数が上限値未満
+        if(forms.length > 1 && index === currentIndex && currentIndex < maxIndex) {
+          $('.add-form-button', form).show()
+          $('.delete-form-button', form).show()
+        }
+        // 要素数が上限値、かつ最後のフォーム
+        if(index === maxIndex) {
+          $('.add-form-button', form).hide()
+          $('.delete-form-button', form).show()
+        }
+      })
+    }
+
+    function alignmentIndex() {
+      const forms = allChildForms()
+      forms.each((index, form) => {
+        $('input', form).each((i, element) => {
+          setIndex(index, $(element))
+        })
+      })
+    }
+
+    $(document).on('click', '.add-form-button', function() {
+      if(currentIndex >= maxIndex) return;
+      currentIndex++
+      $('#child-forms').append(newChildForm(currentIndex))
+      resetButton()
+    })
+
+    $(document).on('click', '.delete-form-button', function() {
+      if(currentIndex <= minIndex) return
+      currentIndex--
+      $(this).closest('.child-form').remove()
+      alignmentIndex()
+      resetButton()
+    })
+
+    // 初期表示、ブラウザバック
+    $(window).on('pageshow', function(){
+      resetButton()
+    })
+  })
